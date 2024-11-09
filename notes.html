@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Note APP 📓</title>
+		<link rel="stylesheet" href="style.css" />
+		<style>
+			.item h1 {
+				font-size: 9rem;
+				padding-top: 15px;
+			}
+			.item h2 {
+				font-size: 5.5rem;
+				padding-top: 15px;
+			}
+			.item h3 {
+				font-size: 2.75rem;
+				padding-top: 15px;
+			}
+			.item h4 {
+				font-size: 1.325rem;
+				padding-top: 15px;
+			}
+			.item h5 {
+				font-size: 1rem;
+				padding-top: 15px;
+			}
+			.item h6 {
+				font-size: 0.75rem;
+				padding-top: 15px;
+			}
+
+			textarea {
+				resize: none !important;
+				white-space: preserve-breaks;
+			}
+			@keyframes bringer {
+				from {
+					transform: translateY(-20%);
+					opacity: 0;
+				}
+				to {
+					transform: translateY(0);
+					opacity: 1;
+				}
+			}
+
+			#warningMessage {
+				display: none;
+				position: fixed;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%, -50%);
+				background-color: #ffcccb;
+				padding: 20px;
+				border-radius: 8px;
+				text-align: center;
+				font-size: 1.2rem;
+				color: #333;
+				z-index: 100000;
+			}
+			/* Hide main content when warning is visible */
+			.hidden-content {
+				display: none;
+			}
+		</style>
+	</head>
+	<body
+		class="flex justify-center items-center w-screen h-min bg-slate-950 overflow-x-hidden relative"
+	>
+		<!-- Warning Message -->
+		<div id="warningMessage">
+			This app is not available on tablet or smaller devices. Please use a
+			larger screen.
+		</div>
+		<div id="appContent">
+			<button
+				class="add fixed top-4 right-4 bg-green-500 px-6 py-2 rounded-lg text-white"
+			>
+				Add Note
+			</button>
+			<!-- Save Button -->
+			<button
+				class="save fixed top-4 left-4 bg-blue-500 px-6 py-2 rounded-lg text-white"
+			>
+				Save
+			</button>
+			<button
+				class="load fixed top-4 left-20 bg-purple-500 px-6 py-2 rounded-lg text-white"
+			>
+				Load
+			</button>
+
+			<div class="grid grid-cols-3 gap-8 gap-y-8 mt-32 mx-8">
+				<div class="flex flex-col w-[30vw] item">
+					<div
+						class="header w-full bg-green-900 flex justify-end items-center relative z-20 min-h-[50px]"
+					>
+						<div
+							class="flex gap-x-4 justify-center p-2 items-center *:text-center *:text-white *:text-lg *:hover:cursor-pointer relative z-20"
+						>
+							<a class="close">Close</a>
+							<span class="edit">Edit</span>
+							<span class="remove">X</span>
+						</div>
+					</div>
+					<div
+						class="bg-white h-[60vh] p-4 font-sans text-lg font-semibold duration-300 origin-top"
+					>
+						<textarea
+							type="text"
+							class="!h-full w-full focus:outline-none focus:ring-0 m-0 p-2 flex items-start justify-start !resize-none"
+						></textarea>
+					</div>
+				</div>
+			</div>
+			<!-- Modal for Authentication -->
+
+			<div
+				id="authModal"
+				class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-[100000000] transition-all duration-300"
+			>
+				<div class="bg-white p-8 rounded-lg text-center">
+					<h2 class="text-2xl mb-4">Authenticate to Save</h2>
+					<input
+						type="text"
+						id="username"
+						placeholder="Username"
+						class="p-2 mb-4 border rounded w-full"
+					/>
+					<input
+						type="password"
+						id="password"
+						placeholder="Password"
+						class="p-2 mb-4 border rounded w-full"
+					/>
+					<button
+						id="authSubmit"
+						class="bg-green-500 px-4 py-2 rounded text-white"
+					>
+						Submit
+					</button>
+					<button
+						onclick="closeModal()"
+						class="bg-red-500 px-4 py-2 rounded text-white mt-4"
+					>
+						Cancel
+					</button>
+				</div>
+			</div>
+		</div>
+		<script
+			src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"
+			integrity="sha512-jB0TkTBeQC9ZSkBqDhdmfTv1qdfbWpGE72yJ/01Srq6hEzZIz2xkz1e57p9ai7IeHMwEG7HpzG6NdptChif5Pg=="
+			crossorigin="anonymous"
+			referrerpolicy="no-referrer"
+		></script>
+		<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+		<script>
+			let itemsList = [];
+			let classes =
+				"!h-full w-full focus:outline-none focus:ring-0 m-0 p-2 flex items-start justify-start ";
+			classes = classes.split(" ");
+
+			function closeFunc() {
+				document.querySelectorAll(".close").forEach((ele) => {
+					ele.removeEventListener("click", eventClose);
+					ele.addEventListener("click", eventClose);
+				});
+			}
+			function eventClose(e) {
+				e.target.parentElement.parentElement.parentElement
+					.querySelector(".font-sans")
+					.classList.toggle("scale-y-0");
+			}
+
+			function headerDrag() {
+				document.querySelectorAll(".header").forEach((ele) => {
+					let moveEventHandler = null;
+
+					ele.addEventListener("mousedown", (e) => {
+						const parent = e.target.parentElement;
+						if (!parent.classList.contains("fixed")) {
+							parent.classList.add("fixed");
+							parent.classList.add("z-[1000]");
+							parent.classList.add("transition-all");
+							parent.classList.add("duration-[40ms]");
+						}
+
+						moveEventHandler = (ee) => {
+							if (parent.classList.contains("item")) {
+								parent.style.top = `${ee.clientY}px`;
+								parent.style.left = `${ee.clientX - 100}px`;
+								console.log(ee.clientY, ee.clientX);
+							}
+						};
+
+						document.addEventListener("mousemove", moveEventHandler);
+					});
+
+					document.addEventListener("mouseup", () => {
+						if (moveEventHandler) {
+							document.removeEventListener("mousemove", moveEventHandler);
+							moveEventHandler = null;
+						}
+					});
+				});
+			}
+
+			function editFunc() {
+				document.querySelectorAll(".edit").forEach((ele) => {
+					ele.removeEventListener("click", handleEditClick); // Ensure no duplicate listeners
+					ele.addEventListener("click", handleEditClick);
+				});
+			}
+
+			function updateWhenInputsOpen() {
+				document.querySelectorAll(".edit").forEach((ele) => {
+					let item = ele.parentElement.parentElement.parentElement;
+					if (
+						!item.classList.contains("closed") &&
+						item.querySelector("textarea")
+					) {
+						let content = item.querySelector("textarea").value;
+						let p = item.querySelector("textarea").parentElement;
+						let newDiv = document.createElement("div");
+						newDiv.classList.add("p-6");
+						newDiv.classList.add("w-full");
+						newDiv.classList.add("!h-full");
+						newDiv.classList.add("bg-gray-200");
+						newDiv.classList.add("cont");
+						newDiv.innerHTML = marked.parse(content);
+						p.appendChild(newDiv);
+						item.querySelector("textarea").remove();
+						updater({ txt: content, id: item.id });
+						item.classList.add("closed");
+					}
+				});
+			}
+
+			function handleEditClick(e) {
+				let item = e.target.parentElement.parentElement.parentElement;
+				console.log(item);
+				if (item.classList.contains("closed")) {
+					let c = item.querySelector(".cont").innerHTML;
+					let p = item.querySelector(".cont").parentElement;
+					let textarea = document.createElement("textarea");
+					DOMPurify.sanitize(c);
+					classes.forEach((cl) => {
+						if (cl.trim().length > 0) {
+							textarea.classList.add(cl);
+						}
+					});
+					textarea.value = DOMPurify.sanitize(c);
+					item.querySelector(".cont").remove();
+					p.appendChild(textarea);
+					item.classList.remove("closed");
+				} else {
+					let content = item.querySelector("textarea").value;
+					let p = item.querySelector("textarea").parentElement;
+					let newDiv = document.createElement("div");
+					newDiv.classList.add("p-6");
+					newDiv.classList.add("w-full");
+					newDiv.classList.add("!h-full");
+					newDiv.classList.add("bg-gray-200");
+					newDiv.classList.add("cont");
+					newDiv.innerHTML = marked.parse(content);
+					p.appendChild(newDiv);
+					item.querySelector("textarea").remove();
+					updater({ txt: content, id: item.id });
+					item.classList.add("closed");
+				}
+			}
+
+			function generator() {
+				document.querySelector(".grid-cols-3").innerHTML = "";
+				itemsList.forEach((ele) => {
+					document.querySelector(".grid-cols-3").innerHTML += `
+                    <div class="flex flex-col w-[30vw] item closed animate-[bringer_1s_ease_1] " id="${
+											ele.id
+										}">
+                        <div class="header w-full bg-green-900 flex justify-end items-center relative z-20 min-h-[50px] rounded-t-md">
+                            <div class="flex gap-x-4 justify-center p-2 items-center *:text-center *:text-white *:text-lg *:hover:cursor-pointer relative z-20">
+                                <a class="close">Close</a>
+                                <span class="edit">Edit</span>
+                                <span class="remove">X</span>
+                            </div>
+                        </div>
+                        <div class="bg-white h-[60vh] p-4 font-sans text-lg font-semibold duration-300 origin-top rounded-b-md">
+                            <div class="p-6 w-full !h-full bg-gray-200 cont">${marked.parse(
+															DOMPurify.sanitize(ele.txt) || "EMPTY"
+														)}</div>
+                        </div>
+                    </div>
+                `;
+				});
+				headerDrag();
+				editFunc();
+				remover();
+				closeFunc();
+			}
+
+			function getStorage() {
+				let items = JSON.parse(localStorage.getItem("items")) || [];
+				if (!items || items.length < 1) {
+					itemsList = [
+						{
+							txt: "Welcome to this app",
+							id: crypto.randomUUID(),
+						},
+					];
+					generator(itemsList);
+				} else {
+					itemsList = items;
+					generator(itemsList);
+				}
+			}
+
+			function setStorage(item) {
+				itemsList.push(item);
+				justUpdate();
+			}
+
+			function justUpdate() {
+				updateWhenInputsOpen();
+				localStorage.setItem("items", JSON.stringify(itemsList));
+				getStorage();
+			}
+
+			function updater(item) {
+				let idx = itemsList.findIndex((a) => a.id === item.id);
+				console.log(idx);
+				itemsList[idx].txt = item.txt;
+				itemsList[idx].id = item.id;
+				justUpdate();
+			}
+
+			function remover() {
+				document.querySelectorAll(".remove").forEach((ele) => {
+					ele.addEventListener("click", (e) => {
+						let p = e.target.parentElement.parentElement.parentElement;
+						let id = p.getAttribute("id");
+						e.target.parentElement.parentElement.parentElement.remove();
+						let idx = itemsList.findIndex((a) => a.id == id);
+						itemsList.splice(idx, 1);
+
+						justUpdate();
+					});
+				});
+			}
+
+			getStorage();
+			generator();
+			closeFunc();
+			headerDrag();
+			editFunc();
+			remover();
+
+			document.querySelector(".add").addEventListener("click", () => {
+				setStorage({ txt: "Hello World", id: crypto.randomUUID() });
+			});
+		</script>
+		<script>
+			// Function to show modal
+			function showModal() {
+				document.getElementById("authModal").classList.remove("hidden");
+			}
+
+			// Function to hide modal
+			function closeModal() {
+				document.getElementById("authModal").classList.add("hidden");
+			}
+
+			// Save button event listener
+			document.querySelector(".save").addEventListener("click", showModal);
+
+			// Authentication and Save Data
+			document.getElementById("authSubmit").addEventListener("click", () => {
+				const username = document.getElementById("username").value;
+				const password = document.getElementById("password").value;
+				const dataToSave = JSON.stringify(itemsList);
+
+				fetch("https://aasoft-ir.serv00.net/notes/save_note.php", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({ username, password, data: dataToSave }),
+				})
+					.then((response) => response.json())
+					.then((data) => {
+						if (data.success) {
+							alert("Data saved successfully!");
+							closeModal();
+						} else {
+							alert("Authentication failed!");
+						}
+					})
+					.catch((error) => console.error("Error:", error));
+			});
+
+			// Show authentication modal for both save and load actions
+			function showAuthModal(action) {
+				document.getElementById("authModal").classList.remove("hidden");
+				document
+					.getElementById("authSubmit")
+					.setAttribute("data-action", action);
+			}
+
+			// Close modal
+			function closeModal() {
+				document.getElementById("authModal").classList.add("hidden");
+			}
+
+			// Handle Save and Load actions
+			document.getElementById("authSubmit").addEventListener("click", () => {
+				const username = document.getElementById("username").value;
+				const password = document.getElementById("password").value;
+				const action = document
+					.getElementById("authSubmit")
+					.getAttribute("data-action");
+				const dataToSave = action === "save" ? JSON.stringify(itemsList) : null;
+
+				fetch("https://aasoft-ir.serv00.net/notes/save_note.php", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						username,
+						password,
+						action,
+						data: dataToSave,
+					}),
+				})
+					.then((response) => response.json())
+					.then((data) => {
+						if (data.success) {
+							if (action === "save") {
+								alert("Data saved successfully!");
+							} else if (action === "load") {
+								itemsList = JSON.parse(data.data);
+								console.log(itemsList);
+								localStorage.setItem("itemsList", JSON.stringify(itemsList));
+								generator(); // Re-render notes from loaded data
+								alert("Data loaded successfully!");
+							}
+							closeModal();
+						} else {
+							alert(data.message || "Authentication failed!");
+						}
+					})
+					.catch((error) => console.error("Error:", error));
+			});
+
+			document
+				.querySelector(".save")
+				.addEventListener("click", () => showAuthModal("save"));
+			document
+				.querySelector(".load")
+				.addEventListener("click", () => showAuthModal("load"));
+
+			function checkScreenSize() {
+				const warningMessage = document.getElementById("warningMessage");
+				const appContent = document.getElementById("appContent");
+
+				if (window.innerWidth <= 1000) {
+					// Show warning and hide app content for tablet and smaller devices
+					warningMessage.style.display = "block";
+					appContent.classList.add("hidden-content");
+				} else {
+					// Hide warning and show app content for larger screens
+					warningMessage.style.display = "none";
+					appContent.classList.remove("hidden-content");
+				}
+			}
+
+			// Check screen size on load
+			checkScreenSize();
+
+			// Check screen size on resize
+			window.addEventListener("resize", checkScreenSize);
+		</script>
+	</body>
+</html>

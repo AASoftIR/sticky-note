@@ -381,7 +381,7 @@
 				const password = document.getElementById("password").value;
 				const dataToSave = JSON.stringify(itemsList);
 
-				fetch("https://aasoft-ir.serv00.net/notes/save_note.php", {
+				fetch("*****", {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
@@ -422,7 +422,7 @@
 					.getAttribute("data-action");
 				const dataToSave = action === "save" ? JSON.stringify(itemsList) : null;
 
-				fetch("https://aasoft-ir.serv00.net/notes/save_note.php", {
+				fetch("*****", {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({

@@ -32,3 +32,7 @@ Because we’re just that fancy. 😏
 ## 🎉 Have Fun!
 
 Drop us a ⭐ if this made you smile! 😄
+
+## Electron ⚙️
+
+You can Build this app with electron but i had to remove the db server for security reasons but add yours!!!
